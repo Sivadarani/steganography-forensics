@@ -1,22 +1,30 @@
-# Steganography Forensics — Web App (Streamlit)
+# Stego Web App Starter
 
-This app demonstrates **encode**, **decode**, and **forensic detection** for image steganography using **LSB**.
-
-## How to run (Windows)
-
-1) Install Python 3.10+
-2) Open Command Prompt and run:
+## Structure
 ```
+stego_webapp_starter/
+ ├── frontend/
+ │   └── index.html          # Simple UI (open in browser)
+ └── backend/
+     ├── app.py              # FastAPI server
+     ├── requirements.txt
+     └── models/
+         └── steg_cnn.h5     # Put your trained model here
+```
+
+## How to run (backend)
+```bash
+cd backend
 pip install -r requirements.txt
-streamlit run app.py
+python app.py
 ```
-3) A browser will open at `http://localhost:8501`
+This starts the API at http://localhost:8000
 
-## Tabs
-- **Encode**: hide a secret message inside an image (PNG recommended)
-- **Decode**: extract a message from an image created by this encoder
-- **Forensics**: visualize the LSB plane and show basic stats (randomness heuristic)
+## How to use (frontend)
+- Open `frontend/index.html` in your browser.
+- Upload an image and click **Analyze**.
+- The page will call POST /analyze on the backend and display prediction.
 
-## Notes
-- For JPEGs, the app will still work, but **PNG** is more reliable (lossless).
-- This is a baseline. You can extend the Forensics tab with CNN/AI for better detection of unknown algorithms.
+## Train a model
+Use your own pipeline (or the one provided earlier) to produce `models/steg_cnn.h5`.
+Place that file under `backend/models/`.

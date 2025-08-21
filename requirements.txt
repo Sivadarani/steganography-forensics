@@ -1,1 +1,1 @@
-streamlitnumpypandasPillowmatplotlibopencv-python-headlessscikit-learn
+streamlitnumpypandasPillowmatplotlibopencv-python-headlessscikit-learntorchtorchvisiontorchaudio

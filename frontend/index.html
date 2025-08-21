@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Steganalysis – Cover vs Stego</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 40px; }
+    h1 { margin-bottom: 0.2rem; }
+    .sub { color: #555; margin-bottom: 1rem; }
+    .card { border: 1px solid #ddd; padding: 20px; border-radius: 8px; max-width: 720px; }
+    .drop { border: 2px dashed #bbb; border-radius: 8px; padding: 30px; text-align: center; cursor: pointer; }
+    .drop.dragover { border-color: #333; }
+    .row { margin-top: 16px; display: flex; gap: 12px; align-items: center; }
+    .preview { max-width: 240px; border: 1px solid #eee; border-radius: 4px; }
+    button { padding: 10px 16px; border: none; border-radius: 6px; background: #111; color: white; cursor: pointer; }
+    button[disabled] { opacity: 0.6; cursor: not-allowed; }
+    .out { margin-top: 18px; font-size: 1.05rem; }
+    .pill { padding: 4px 10px; border-radius: 999px; background: #eee; display: inline-block; margin-left: 8px; }
+    .foot { color: #777; font-size: 0.9rem; margin-top: 24px; }
+    .bar { height: 10px; background: #eee; border-radius: 999px; overflow: hidden; }
+    .fill { height: 100%; width: 0%; background: #111; transition: width 0.4s ease; }
+  </style>
+</head>
+<body>
+  <h1>AI Steganalysis</h1>
+  <div class="sub">Detect hidden data in images (Cover vs Stego)</div>
+  <div class="card">
+    <div id="drop" class="drop">Click or drag & drop an image (JPG/PNG)</div>
+    <input id="file" type="file" accept="image/*" style="display:none" />
+    <div class="row">
+      <img id="preview" class="preview" alt="preview"/>
+      <div>
+        <button id="analyzeBtn" disabled>Analyze</button>
+        <div class="out" id="status">No file selected.</div>
+        <div class="bar"><div class="fill" id="fill"></div></div>
+      </div>
+    </div>
+    <div class="out" id="result"></div>
+  </div>
+  <div class="foot">Backend endpoint: <code>/analyze</code>. Place your model at <code>backend/models/steg_cnn.h5</code>.</div>
+<script>
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('file');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const statusEl = document.getElementById('status');
+const resultEl = document.getElementById('result');
+const preview = document.getElementById('preview');
+const fill = document.getElementById('fill');
+let currentFile = null;
+
+function reset() {
+  preview.src = '';
+  resultEl.textContent = '';
+  statusEl.textContent = 'No file selected.';
+  fill.style.width = '0%';
+  analyzeBtn.disabled = true;
+}
+
+drop.addEventListener('click', ()=> fileInput.click());
+drop.addEventListener('dragover', (e)=> { e.preventDefault(); drop.classList.add('dragover'); });
+drop.addEventListener('dragleave', ()=> drop.classList.remove('dragover'));
+drop.addEventListener('drop', (e)=> {
+  e.preventDefault(); drop.classList.remove('dragover');
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+    handleFile(e.dataTransfer.files[0]);
+  }
+});
+fileInput.addEventListener('change', (e)=> {
+  if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+function handleFile(f) {
+  if (!f.type.startsWith('image/')) { alert('Please choose an image'); return; }
+  currentFile = f;
+  const url = URL.createObjectURL(f);
+  preview.src = url;
+  statusEl.textContent = 'Ready to analyze.';
+  analyzeBtn.disabled = false;
+}
+
+analyzeBtn.addEventListener('click', async ()=> {
+  if (!currentFile) return;
+  analyzeBtn.disabled = true;
+  statusEl.textContent = 'Uploading & analyzing...';
+  fill.style.width = '30%';
+  try {
+    const fd = new FormData();
+    fd.append('file', currentFile, currentFile.name);
+    const res = await fetch('/analyze', { method:'POST', body: fd });
+    fill.style.width = '70%';
+    const data = await res.json();
+    fill.style.width = '100%';
+    if (data.error) {
+      resultEl.textContent = 'Error: ' + data.error;
+      statusEl.textContent = 'Failed.';
+    } else {
+      const prob = (data.stego_probability*100).toFixed(1);
+      resultEl.innerHTML = \`Prediction: <b>\${data.prediction}</b> <span class="pill">\${prob}%</span>\`;
+      statusEl.textContent = 'Done.';
+    }
+  } catch (err) {
+    resultEl.textContent = 'Network error: ' + err;
+    statusEl.textContent = 'Failed.';
+  } finally {
+    analyzeBtn.disabled = false;
+    setTimeout(()=> fill.style.width='0%', 1200);
+  }
+});
+reset();
+</script>
+</body>
+</html>
